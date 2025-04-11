@@ -1,17 +1,19 @@
-{% extends 'control/layaut.html' %}{% block content %}
+{% extends 'control/layaut.html' %}
+{% block content %}
 <div class="row" style="text-align: center;">
     <form action="{% url 'logout' %}" method="post" class="text-light">
         {% csrf_token %}
         <button type="submit" class="btn btn-light mt-4 mb-4">Cerrar sesión</button>
     </form>
-    <h1 class="text-light">Registrar Venta de Jugo</h1>
+    <h1 class="text-light">Registrar Venta de Jugos</h1>
     <form method="post" class="text-light">
         {% csrf_token %}
+        <input type="hidden" name="action" value="agregar">
 
         <!-- Campo de Jugo -->
         <div class="mb-4 mt-4">
             <label for="{{ form.jugo.id_for_label }}">Jugo:</label>
-            <select name="jugo" id="{{ form.jugo.id_for_label }}" class="form-select form-select-lg mb-3">
+            <select name="{{ form.jugo.name }}" id="{{ form.jugo.id_for_label }}" class="form-select form-select-lg mb-3">
                 {% for value, label in form.jugo.field.choices %}
                     <option value="{{ value }}" {% if value == form.jugo.value %}selected{% endif %}>
                         {{ label }}
@@ -23,33 +25,65 @@
         <!-- Campo de Cantidad -->
         <div>
             <label for="{{ form.cantidad.id_for_label }}">Cantidad:</label>
-            <input class="form-text-lg" type="number" name="cantidad" id="{{ form.cantidad.id_for_label }}" value="{{ form.cantidad.value }}" required>
+            <input class="form-text-lg" type="number" name="{{ form.cantidad.name }}" id="{{ form.cantidad.id_for_label }}" value="{{ form.cantidad.value }}" required>
         </div>
 
-        <!-- Campo de Sucursal -->
+        <!-- Botón para agregar al carrito -->
+        <button type="submit" class="btn btn-primary mb-4 mt-4">Agregar al Carrito</button>
+    </form>
+
+    <!-- Carrito de Compras -->
+    <h2 class="text-light mt-4 mb-4">Carrito de Compras</h2>
+    <ul>
+        {% for item in carrito %}
+            <li class="text-light">{{ item.jugo_nombre }} - {{ item.cantidad }} unidades - ${{ item.precio|floatformat:2 }}</li>
+        {% empty %}
+            <li class="text-light">El carrito está vacío.</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Botón para limpiar el carrito -->
+    <form method="post" class="text-light">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="limpiar">
+        <button type="submit" class="btn btn-warning mb-4 mt-4">Limpiar Carrito</button>
+    </form>
+
+    <!-- Formulario para pagar -->
+    <form method="post" class="text-light">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="pagar">
         <div class="mt-4 mb-4">
-            <label for="{{ form.sucursal.id_for_label }}">Sucursal:</label>
-            <select name="sucursal" id="{{ form.sucursal.id_for_label }}"  class="form-select form-select-lg mb-3">
-                {% for sucursal in form.sucursal.field.queryset %}
-                    <option value="{{ sucursal.id }}" {% if sucursal.id == form.sucursal.value %}selected{% endif %}>
+            <label for="sucursal">Sucursal:</label>
+            <select name="sucursal" id="sucursal" class="form-select form-select-lg mb-3">
+                {% for sucursal in sucursales %}
+                    <option value="{{ sucursal.id }}">
                         {{ sucursal.nombre }}
                     </option>
                 {% endfor %}
             </select>
         </div>
-
-        <!-- Botón para enviar el formulario -->
-        <button type="submit" class="btn btn-danger mb-4 mt-4">Guardar Venta</button>
+        <button type="submit" class="btn btn-success mb-4 mt-4">Pagar</button>
     </form>
 
     <h2 class="text-light mt-4 mb-4">Ventas del Día</h2>
-    <ul>
-        {% for venta in ventas %}
-            <li class="text-light">{{ venta.jugo }} - {{ venta.cantidad }} unidades - ${{ venta.total }} - {{ venta.sucursal.nombre }}</li>
-        {% empty %}
-            <li class="text-light">No hay ventas registradas aún.</li>
-        {% endfor %}
-    </ul>
+    {% for venta in ventas %}
+        <div class="text-light mb-4" id="venta-{{ venta.id }}">
+            <h3>Venta {{ forloop.counter }}:</h3>
+            <ul>
+                {% for detalle in venta.detalleventa_set.all %}
+                    <li>{{ detalle.jugo.nombre }} - {{ detalle.cantidad }} unidades - ${{ detalle.subtotal }}</li>
+                {% endfor %}
+            </ul>
+            <p>Total: ${{ venta.total }} - Sucursal: {{ venta.sucursal.nombre }}</p>
+            <!-- Botón para imprimir esta venta -->
+            <button type="button" class="btn btn-info mb-4 mt-4" onclick="imprimirVenta('venta-{{ venta.id }}')">
+                Imprimir Venta
+            </button>
+        </div>
+    {% empty %}
+        <p class="text-light">No hay ventas registradas aún.</p>
+    {% endfor %}
 
     <h3 class="text-light">Total de Ventas: ${{ total_ventas }}</h3>
 
@@ -60,4 +94,15 @@
         {% endfor %}
     </ul>
 </div>
-{%endblock%}
+
+<script type="text/javascript">
+    function imprimirVenta(ventaId) {
+        const ventaSection = document.getElementById(ventaId);
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write('<html><head><title>Venta</title></head><body>' + ventaSection.innerHTML + '</body></html>');
+        printWindow.document.close();
+        printWindow.print();
+    }
+</script>
+
+{% endblock %}

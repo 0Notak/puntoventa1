@@ -1,7 +1,5 @@
 # control/views.py
-from django.shortcuts import render, redirect
-from .forms import VentaForm
-from .models import Venta, Sucursal
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from datetime import date
@@ -9,6 +7,9 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 import datetime
 from django.core.paginator import Paginator
+from .forms import DetalleVentaForm
+
+
 # Vista para login (usaremos Django Auth)
 def login_view(request):
     if request.method == 'POST':
@@ -24,31 +25,75 @@ def login_view(request):
 
 # Vista para el formulario de registro de ventas
 
+
+
+from .models import Venta, DetalleVenta, Sucursal, Jugo
+from .forms import DetalleVentaForm
+
 @login_required
 def registro_view(request):
+    # Utiliza la sesión para mantener el carrito entre solicitudes
+    if 'carrito' not in request.session:
+        request.session['carrito'] = []
+
+    carrito = request.session['carrito']
+
     if request.method == 'POST':
-        form = VentaForm(request.POST)
-        if form.is_valid():
-            form.save()
+        action = request.POST.get('action')
+
+        if action == 'agregar':
+            form = DetalleVentaForm(request.POST)
+            if form.is_valid():
+                # Agregar al carrito con conversiones necesarias
+                item = {
+                    'jugo_id': form.cleaned_data['jugo'].id,
+                    'jugo_nombre': form.cleaned_data['jugo'].nombre,
+                    'cantidad': form.cleaned_data['cantidad'],
+                    'precio': float(form.cleaned_data['jugo'].precio)  # Convertir a float
+                }
+                carrito.append(item)
+                request.session.modified = True  # Marca la sesión como modificada
+
+        elif action == 'pagar':
+            if carrito:
+                sucursal_id = request.POST.get('sucursal')
+                sucursal = get_object_or_404(Sucursal, id=sucursal_id)  # Maneja el caso en que la sucursal no exista
+                venta = Venta.objects.create(sucursal=sucursal)
+                for item in carrito:
+                    jugo = Jugo.objects.get(id=item['jugo_id'])
+                    DetalleVenta.objects.create(
+                        venta=venta,
+                        jugo=jugo,
+                        cantidad=item['cantidad'],
+                        precio=item['precio']
+                    )
+                # Limpia el carrito después de pagar
+                carrito.clear()
+                request.session.modified = True
+                return redirect('registro')
+
+        elif action == 'limpiar':
+            # Limpiar el carrito
+            carrito.clear()
+            request.session.modified = True
             return redirect('registro')
+
     else:
-        form = VentaForm()
+        form = DetalleVentaForm()
 
-    # Filtrar ventas del día para mostrarlas
     ventas = Venta.objects.filter(fecha=date.today())
-
-    # Calcular el total de ventas del día, usando la propiedad 'total' en el modelo
     total_ventas = sum(venta.total for venta in ventas)
-
-    # Resumen de ventas por sucursal (calculamos el total de cada sucursal)
-    resumen = ventas.values('sucursal__nombre').annotate(total=Sum('cantidad'))
+    resumen = ventas.values('sucursal__nombre').annotate(total=Sum('detalleventa__cantidad'))
 
     return render(request, 'control/registro.html', {
         'form': form,
+        'carrito': carrito,
         'ventas': ventas,
         'resumen': resumen,
-        'total_ventas': total_ventas
+        'total_ventas': total_ventas,
+        'sucursales': Sucursal.objects.all()  # Pasa las sucursales al template
     })
+
 # Vista para mostrar los registros con gráficos
 @login_required
 def reporte_view(request):
