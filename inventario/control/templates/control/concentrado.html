@@ -1,0 +1,53 @@
+{% extends 'control/layaut.html' %}{% block content %}
+<div class="row" style="text-align: center;">
+    <h1 class="mt-4 mb-4 text-light">Concentrado de Ventas</h1>
+
+    <table border="1" class="text-light">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Jugo</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Sucursal</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for venta in page_obj %}
+                <tr>
+                    <td>{{ venta.id }}</td>
+                    <td>{{ venta.jugo.nombre }}</td>
+                    <td>{{ venta.cantidad }}</td>
+                    <td>${{ venta.precio }}</td>
+                    <td>{{ venta.sucursal.nombre }}</td>
+                    <td>{{ venta.fecha }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">No hay ventas registradas.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Paginación -->
+    <div>
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; primera</a>
+                <a href="?page={{ page_obj.previous_page_number }}">anterior</a>
+            {% endif %}
+
+            <span class="current">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">siguiente</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">última &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{%endblock%}

@@ -1,0 +1,13 @@
+<!-- control/templates/control/login.html -->
+{% extends 'control/layaut.html' %}{% block content %}
+<div class="row" style="text-align: center;">
+    <h1 class="text-light">Iniciar sesión</h1>
+    <form method="post" class="text-light">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-danger" type="submit">Iniciar sesión</button>
+    </form>
+
+    <p class="text-light">¿No tienes cuenta? Habla con el Administador</a></p>
+</div>
+    {% endblock %}

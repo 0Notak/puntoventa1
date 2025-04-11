@@ -1,0 +1,63 @@
+{% extends 'control/layaut.html' %}{% block content %}
+<div class="row" style="text-align: center;">
+    <form action="{% url 'logout' %}" method="post" class="text-light">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-light mt-4 mb-4">Cerrar sesión</button>
+    </form>
+    <h1 class="text-light">Registrar Venta de Jugo</h1>
+    <form method="post" class="text-light">
+        {% csrf_token %}
+
+        <!-- Campo de Jugo -->
+        <div class="mb-4 mt-4">
+            <label for="{{ form.jugo.id_for_label }}">Jugo:</label>
+            <select name="jugo" id="{{ form.jugo.id_for_label }}" class="form-select form-select-lg mb-3">
+                {% for value, label in form.jugo.field.choices %}
+                    <option value="{{ value }}" {% if value == form.jugo.value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Campo de Cantidad -->
+        <div>
+            <label for="{{ form.cantidad.id_for_label }}">Cantidad:</label>
+            <input class="form-text-lg" type="number" name="cantidad" id="{{ form.cantidad.id_for_label }}" value="{{ form.cantidad.value }}" required>
+        </div>
+
+        <!-- Campo de Sucursal -->
+        <div class="mt-4 mb-4">
+            <label for="{{ form.sucursal.id_for_label }}">Sucursal:</label>
+            <select name="sucursal" id="{{ form.sucursal.id_for_label }}"  class="form-select form-select-lg mb-3">
+                {% for sucursal in form.sucursal.field.queryset %}
+                    <option value="{{ sucursal.id }}" {% if sucursal.id == form.sucursal.value %}selected{% endif %}>
+                        {{ sucursal.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Botón para enviar el formulario -->
+        <button type="submit" class="btn btn-danger mb-4 mt-4">Guardar Venta</button>
+    </form>
+
+    <h2 class="text-light mt-4 mb-4">Ventas del Día</h2>
+    <ul>
+        {% for venta in ventas %}
+            <li class="text-light">{{ venta.jugo }} - {{ venta.cantidad }} unidades - ${{ venta.total }} - {{ venta.sucursal.nombre }}</li>
+        {% empty %}
+            <li class="text-light">No hay ventas registradas aún.</li>
+        {% endfor %}
+    </ul>
+
+    <h3 class="text-light">Total de Ventas: ${{ total_ventas }}</h3>
+
+    <h2 class="text-light">Resumen por Sucursal</h2>
+    <ul>
+        {% for item in resumen %}
+            <li class="text-light">{{ item.sucursal__nombre }}: ${{ item.total }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{%endblock%}
